@@ -255,10 +255,10 @@ if __name__ == '__main__':
     
     # Grab inputs for spatial and temporal domains and variable of interest
     # To be removed when published
-    domain = [40.50, 40.90, -74.15, -73.75]
+    domain = [40.60, 40.80, -74.05, -73.85]
     sample_coordinate = [40.6305, -73.9521]
-    date_range = [datetime.datetime(year=2019, month=7, day=28, hour=17),
-                  datetime.datetime(year=2019, month=7, day=28, hour=20)-datetime.timedelta(hours=1)]
+    date_range = [datetime.datetime(year=2019, month=7, day=26, hour=5),
+                  datetime.datetime(year=2019, month=7, day=29, hour=5)-datetime.timedelta(hours=1)]
     date_range = pandas.date_range(start=date_range[0], end=date_range[1], freq='H') 
     plot_var = 'Q_H'
     
@@ -282,7 +282,9 @@ if __name__ == '__main__':
     
     # Grab nearest observation data for a given variable
     station_data = vdtn_setup(lats, date_range, domain_center, plot_var)
-        
+    
+    # Add Mesonet data into respective directories. Take a look at the .7z file in the Google Drive.
+    
     ''' POST-PROCESSING '''
     # To-do:
     # 1. Create single formatting file for all text
@@ -293,11 +295,13 @@ if __name__ == '__main__':
                     ['T_s', 'T_a']]
         coord_timeseries = timeseries_plot(date_range, lats, lons, sample_coordinate, var_list, plot_var)
 
+    '''
     # Spatial gridded data plotting, domain-based    
     grid_var = globals()[plot_var]
     grid_metadata = varnames.var_metadata(plot_var, plot_var)    
-    datamap = meshgrid.main(domain, domain_center, date_range, lats, lons, grid_var, grid_metadata, zoom=0.0, animated=False, savefig=False)
-  
+    datamap = meshgrid.main(domain, domain_center, date_range, lats, lons, grid_var, grid_metadata, zoom=0.0, animated=True, savefig=True)
+    '''
+    
     runtime = time.time() - t
     print('Program runtime is: {0:.3f} sec'.format(runtime))
     

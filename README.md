@@ -19,16 +19,16 @@ This package uses Monin Obukhov similarity theory (abbreviated as MOST) (Monin a
 ## Program flow
 The program flow for this package is roughly described in the flowchart seen below. 
 
-![GOES Heat Flux Package Flowchart](https://github.com/mr-gabrielrios/goes_heat_flux/tree/main/aux/goes_heat_flux_product_flowchart.png)
+![GOES Heat Flux Package Flowchart](https://github.com/mr-gabrielrios/goes_heat_flux/blob/main/aux/goes_heat_flux_product_flowchart.png)
 
 **Notes:** the `aux` folder is reserved for files used in the `README` file, so if you do use this repo, feel free to delete that.
 
 ## Sample outputs
 
-![GOES Heat Flux Heatmap](https://github.com/mr-gabrielrios/goes_heat_flux/tree/main/aux/g41.1_-74.35_40.3_-73.55_s2019-07-28 05:00:00_e2019-07-29 04:00:00.gif)
+![GOES Heat Flux Heatmap](https://github.com/mr-gabrielrios/goes_heat_flux/blob/main/aux/41.1_-74.35_40.3_-73.55_s2019-07-28%2005:00:00_e2019-07-29%2004:00:00.gif)
 **Figure 1:** Sensible heat flux (Q<sub>H</sub>) in the New York City metropolitan area on 28 July 2019. Notice the stronger heat flux signals come through in the borough of Brooklyn and Queens and the urban agglomeration north of Newark (Paterson, Passaic, Clifton).
 
-![GOES Heat Flux Timeseries](https://github.com/mr-gabrielrios/goes_heat_flux/tree/main/aux/timeseries_example.png)
+![GOES Heat Flux Timeseries](https://github.com/mr-gabrielrios/goes_heat_flux/blob/main/aux/timeseries_example.png)
 **Figure 2:** Sensible heat flux (Q<sub>H</sub>) [subplot 1] and land surface and air temperatures [subplot 2] timeseries in Flatbush, Brooklyn from 26 to 28 July 2019.
 
 ## Known issues

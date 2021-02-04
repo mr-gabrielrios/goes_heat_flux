@@ -132,7 +132,7 @@ def gridded_data(domain, domain_center, date, lats, lons, data, data_limits, var
             # File name format: 
             # (NW latitude)_(NW longitude)_(SE latitude)_(SE longitude)_(start date)_(end_date).gif
             file_str = '{0}_{1}_{2}_{3}_s{4}_e{5}.gif'.format(domain[1], domain[2], domain[0], domain[3], date[0], date[-1])
-            anim.save(file_str, writer='pillow', fps=2, dpi=300, bitrate=-1, codec="libx264")
+            anim.save(file_str, writer='pillow', fps=2)
         
     return fig, ax
 
