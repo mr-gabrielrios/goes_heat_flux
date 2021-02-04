@@ -64,18 +64,18 @@ def time_plot(date_range, data, var):
         formatting(fig, ax)
     
     # Figure title formatting
-    title_str = '{0} (${1}$)'.format(var[0]['full_name'], var[0]['units'])
+    title_str = 'Valid: {0} to {1} UTC'.format(date_range[0], date_range[-1])
     # Note: value used for x-position positions the figure title relative to the subplot
     fig_title = fig.suptitle(title_str, 
                              fontsize=font_size['title'], 
                              x=ax.get_position().extents[0],
-                             y=0.99,
+                             y=1,
                              horizontalalignment='left')
     
     # Subtitle formatting
     ax_title = ax.set_title(subtitle_str, 
                             fontsize=font_size['subtitle'],
                             x=0,
-                            y=1.01,
+                            y=0.99,
                             ha='left')   
     
