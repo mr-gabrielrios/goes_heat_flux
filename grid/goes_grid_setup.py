@@ -41,7 +41,7 @@ def goes_grid(domain):
                                 np.unravel_index(np.argmin(np.abs(np.subtract(goes_lons,domain[3]))+np.abs(np.subtract(goes_lats,domain[1]))),np.shape(goes_lats))])
         
     # Create index clip for coordinate and data clipping
-    # Format: [max latitude index, min latitude index, min longitude index, max longitude index] (per PUG-L2)
+    # Format: [min latitude index, max latitude index, min longitude index, max longitude index] (per PUG-L2)
     goes_idx = [np.min([nc_indx_corners[0][0],nc_indx_corners[1][0],nc_indx_corners[2][0],nc_indx_corners[3][0]]),
                 np.max([nc_indx_corners[0][0],nc_indx_corners[1][0],nc_indx_corners[2][0],nc_indx_corners[3][0]]),
                 np.min([nc_indx_corners[0][1],nc_indx_corners[1][1],nc_indx_corners[2][1],nc_indx_corners[3][1]]),
@@ -70,23 +70,23 @@ def crd_idx(crd, lats, lons):
 
 ##############################################################################################
 # Method name:      grid_alignment
-# Method objective: Translate data from a WRF grid to align with the GOES grid.
+# Method objective: Translate data from a non-GOES grid to align with the GOES grid.
 # Input(s):         goes_grid [list], wrf_grid [list]
 # Outputs(s):       goes_data [2D ndarray]
 ##############################################################################################
 
-def grid_alignment(goes_grid, wrf_grid):
+def grid_alignment(goes_grid, data_grid):
     
     goes_lons, goes_lats = goes_grid
-    wrf_lons, wrf_lats, wrf_data = wrf_grid
+    lons, lats, data = data_grid
     goes_data = np.empty(np.shape(goes_lons))
-            
-    tree = spatial.KDTree(np.c_[wrf_lons, wrf_lats])
+    
+    tree = spatial.KDTree(np.c_[lons, lats])
     for i in range(0, np.shape(goes_data)[0]):
         for j in range(0, np.shape(goes_data)[1]):
             goes_lon, goes_lat = [goes_lons[i, j], goes_lats[i, j]]
             dist, ii = tree.query([(goes_lon, goes_lat)])
-            goes_data[i, j] = wrf_data.ravel()[ii]
+            goes_data[i, j] = data.ravel()[ii]
             
     return goes_data
 
@@ -99,12 +99,12 @@ if __name__ == '__main__':
     import matplotlib.patches as patches
     
     # Define plot data
-    domain = [40.50, 40.90, -74.15, -73.75]
+    domain = [36.1058, 37.1058, -97.9888, -96.9888]
     lats, lons, goes_idx = goes_grid(domain)
     _lats = [np.amin(lats), np.amax(lats)]
     _lons = [np.amin(lons), np.amax(lons)]
     # Coordinate-to-index test
-    i, j = crd_idx([40.849035, -73.875716], lats, lons)
+    i, j = crd_idx([36.6058, -97.4888], lats, lons)
     
     # Define projections
     proj = ccrs.PlateCarree()
@@ -115,8 +115,8 @@ if __name__ == '__main__':
     ax.set_extent([_lons[0] - zoom, _lons[1] + zoom, _lats[0] - zoom, _lats[1] + zoom])
     ax.coastlines('10m')
     # Add the satellite background data at zoom level 12. Left uncommented to save troubleshooting time.
-    # sat_img = cimgt.GoogleTiles(style='satellite')
-    # ax.add_image(sat_img, 12)
+    sat_img = cimgt.GoogleTiles(style='satellite')
+    ax.add_image(sat_img, 6)
     # Draw user-defined spatial domain for reference
     box = patches.Rectangle(xy=(_lons[0], _lats[0]), 
                            width=(_lons[1] - _lons[0]), 

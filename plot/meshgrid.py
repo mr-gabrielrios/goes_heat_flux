@@ -78,7 +78,7 @@ def gridded_data(domain, domain_center, date, lats, lons, data, data_limits, var
         cmap = plt.cm.get_cmap('Blues_r')
     else:
         norm = matplotlib.colors.Normalize(vmin=0, vmax=data_limits[1])
-        cmap = plt.cm.get_cmap('Reds_r')
+        cmap = plt.cm.get_cmap('Reds')
     
     # Plot the data
     # Colormap placed in list to enable animation function

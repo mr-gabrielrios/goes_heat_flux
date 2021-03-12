@@ -16,7 +16,7 @@ import datetime, numpy as np, os, pandas as pd, re, shutil, sys, time, urllib.re
 # END IMPORTS
 ##############################################################################################
 
-str_switch = False
+str_switch = True
 
 ##############################################################################################
 # Method name:      CtoK
@@ -26,6 +26,7 @@ str_switch = False
 ##############################################################################################
 
 def CtoK(T):
+    ''' Convert degrees Celsius to degrees Kelvin. '''
     return T + 273.15
 
 ##############################################################################################
@@ -45,6 +46,7 @@ def KTtoMS(u):
 ##############################################################################################
     
 def distance(lat_crd, lon_crd, lat_asos, lon_asos):
+    ''' Calculate great circle distance between a point and an ASOS station. '''
     # GRS80 semi-major axis of Earth, per GOES-16 PUG-L2, Volume 5, Table 4.2.8
     R = 6378137 
     p = np.pi/180
@@ -53,12 +55,13 @@ def distance(lat_crd, lon_crd, lat_asos, lon_asos):
 
 ##############################################################################################
 # Method name:      asos_find
-# Method objective: Find closest ASOS station to a given coordinate
+# Method objective: Find closest ASOS station to a given coordinate.
 # Input(s):         lat_crd [float], lon_crd [float]
 # Outputs(s):       station [str]
 ##############################################################################################
 
 def asos_find(lat_crd, lon_crd):
+    ''' Find closest ASOS station to a given coordinate. '''
     t = time.time() 
     # Text file listing all ASOS stations with metadata.
     asos_station_fp = r'https://www.ncdc.noaa.gov/homr/file/asos-stations.txt'
@@ -73,7 +76,7 @@ def asos_find(lat_crd, lon_crd):
     # Read relevant parameters into lists for iterative purposes
     stations, lat_asos, lon_asos = [adf['CALL'].tolist(), adf['LAT'].astype(float).tolist(), adf['LON'].astype(float).tolist()]
     
-    # Define arbitrarily large number as an initial condition (rouglhy equal to circumference of Earth)
+    # Define arbitrarily large number as an initial condition (roughly equal to circumference of Earth)
     dists = 2*np.pi*R 
     # Initialize empty string for population
     station = '' 
@@ -81,12 +84,13 @@ def asos_find(lat_crd, lon_crd):
     for i in range(1, len(lat_asos)):
         dist = distance(lat_crd, lon_crd, lat_asos[i], lon_asos[i])
         if dist < dists:
-            dists = dist
-            station = 'K' + stations[i]
+            if not pd.isnull(stations[i]):
+                dists = dist
+                station = 'K' + stations[i]
 
-    if str_switch:
-        print("Closest station: %s, %.2f m away" % (station, dists))
-        print('asos_find runtime: %.4f s' % (time.time() - t))
+    # if str_switch:
+    print("Closest station: %s, %.2f m away" % (station, dists))
+    print('asos_find runtime: %.4f s' % (time.time() - t))
     
     # Manual override for work in New York City - KNYC is generally unreliable.
     if station == 'KNYC':
@@ -213,4 +217,5 @@ def data_read(date_range, crd, utc_offset):
     return df['u_r'], df['T_dew'], df['p_air']
     
 if __name__ == "__main__":
+    asos_find(36.6058, -97.4888)
     print("Add troubleshooting options here...")

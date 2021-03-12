@@ -93,3 +93,6 @@ def elevation_generator(lats, lons, domain):
         return goes_elev
     
     runtime = time.time() - t
+
+if __name__ == "__main__":
+    elev_data = elevation_generator(lats, lons, domain)

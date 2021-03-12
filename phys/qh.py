@@ -156,7 +156,7 @@ def hfx(z_r, h_0, p_air, u_r, T_lst, T_air, T_dew):
     u_star = vk*(u_r-u_0)/(np.log(z/z_0m)-psi_m*(zeta))
     q_h = rho*c_p*C_h*u_r*(theta(T_lst, T_dew, p_air)-theta(T_air, T_dew, p_air))
             
-    return q_h
+    return q_h, 1/(C_h*u_r)
 
 if __name__ == '__main__':
     print('Troubleshooting goes here')

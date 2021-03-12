@@ -46,7 +46,8 @@ def time_plot(date_range, data, var):
                  'axes_label': 10}    
 
     # Initialize figure with number of axes corresponding to number of datasets in data    
-    fig, axs = plt.subplots(nrows=len(data), ncols=1, sharex=True, dpi=300)
+    rows, cols = [len(data), 1]
+    fig, axs = plt.subplots(nrows=rows, ncols=cols, sharex=True, dpi=300)
         
     # Create vertical gridlines that span across rows to demarcate times
     for i, ax in enumerate(fig.axes):
@@ -79,3 +80,4 @@ def time_plot(date_range, data, var):
                             y=0.99,
                             ha='left')   
     
+    fig.subplots_adjust(hspace=0.5)

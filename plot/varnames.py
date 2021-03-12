@@ -41,6 +41,11 @@ def var_metadata(var, plot_var):
         'full_name': 'Upward surface sensible heat flux',
         'units': 'W m^{-2}'}
     
+    Q_E = {
+        'name': 'Q_E',
+        'full_name': 'Upward surface latent heat flux',
+        'units': 'W m^{-2}'}
+    
     u_r = {
         'name': 'u_r',
         'full_name': 'Wind speed, surface',
@@ -66,7 +71,12 @@ def var_metadata(var, plot_var):
         'full_name': 'Obukhov length',
         'units': 'm'}
     
-    var_list = [T_s, T_a, Q_H, u_r, h_0, z_m, u_star, L]
+    rh = {
+        'name': 'RH',
+        'full_name': 'Relative humidity',
+        'units': '%'}    
+    
+    var_list = [T_s, T_a, Q_H, Q_E, u_r, h_0, z_m, u_star, L, rh]
     
     for v in var_list:
         if var is v['name']:

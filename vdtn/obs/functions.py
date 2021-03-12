@@ -41,6 +41,8 @@ def station_finder(crd):
     
     # Retrieve latitude and longitude
     lat, lon = crd
+    # Initialize null path to station data
+    path = None
     # Initialize empty DataFrame
     stations = pd.DataFrame()
     # Get list of all observation networks, assuming each network has a dedicated directory
@@ -65,10 +67,11 @@ def station_finder(crd):
     # Grab file path for the directory belonging to the closest station
     for root, dirs, files in os.walk(os.path.dirname(__file__)):
         for d in dirs:
-            if station == d:
+            if station in d:
                 path = os.path.join(root, d)
             
     return path
 
 if __name__ == '__main__':
-    fpath = station_finder(40.6305, -73.9521)
+    fpath = station_finder([36.6058, -97.4888])
+    print(fpath)

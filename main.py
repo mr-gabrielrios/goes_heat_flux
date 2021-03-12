@@ -37,15 +37,16 @@ Author:             Gabriel Rios
 
 # External imports
 from google.cloud import storage
-import datetime, numpy as np, os, pandas, time
+import datetime, numpy as np, os, pandas, sys, time
 # Internal imports
-from grid import canopy_height, elevation, goes_grid_setup, land_cover 
+from grid import canopy_height, elevation, goes_grid_setup, lai, land_cover, smap 
 # from grid import land_cover
 from misc import asos_data_reader, time_adjust
-from phys import qh, t_lst, t_air_2m
+from phys import qe, qh, sd, t_lst, t_air_2m
 from plot import meshgrid, timeseries, varnames
 from user import inputs
 from vdtn.obs import functions
+from vdtn.obs.ameriflux import reader as ameriflux
 from vdtn.obs.mesonet import reader as mesonet
 from vdtn.wrf.hrrr import reader as hrrr
 
@@ -101,7 +102,7 @@ def input_setup(domain=False, date_range=False, plot_var=False, time_plot=False,
 #                   elevation_grid [2D ndarray]
 ##############################################################################################
 
-def grid_setup(domain):
+def grid_setup(domain, date_range):
     # Define coordinate grid based on defined spatial domain
     lats, lons, goes_idx = goes_grid_setup.goes_grid(domain)
     print('Grid set up...')
@@ -117,6 +118,8 @@ def grid_setup(domain):
     # Generate elevation data grid
     elevation_grid = elevation.elevation_generator(lats, lons, domain)
     print('Elevation grid generated...')
+    
+
     return lats, lons, goes_idx, lcd, water_pixel, h_0, elevation_grid
 
 ##############################################################################################
@@ -141,6 +144,55 @@ def wrf_setup(lats, local_time, wrf=False):
         return wrf_data
     else:
         return None
+
+##############################################################################################
+# Method name:      aux_props
+# Method objective: Generate auxiliary grid-based data for the main variables.
+# Input(s):         domain [list], date_range [bool or list]
+# Outputs(s):       sm [2D ndarray], LAI [2D ndarray], S_d [2D ndarray]
+##############################################################################################
+
+def aux_props(domain, domain_center, date_range):
+    
+    # Leaf area index (LAI)
+    # Generate 3D data matrix, with a different time at each z-index of the grid
+    LAI = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    # Generate timeseries for continuous data over the date range due to intermittent SMAP data
+    lai_lats, lai_lons, lai_data = lai.main(domain, domain_center, date_range, 'LAI')
+    # Note: z is used as variable name to maintain intuition for the depth of the grid
+    for z, date in enumerate(date_range): 
+        LAI[:, :, z] = goes_grid_setup.grid_alignment([lons, lats], [lai_lons, lai_lats, lai_data])
+    
+    print('LAI set up...')
+    
+    # Soil moisture (sm)
+    # Generate 3D data matrix, with a different time at each z-index of the grid
+    sm = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    # Generate timeseries for continuous data over the date range due to intermittent SMAP data
+    sm_lats, sm_lons, sm_data = smap.main(domain, domain_center, date_range, 'soil_moisture_1km')
+    # Note: z is used as variable name to maintain intuition for the depth of the grid
+    for z, date in enumerate(date_range): 
+        sm[:, :, z] = goes_grid_setup.grid_alignment([lons, lats], [sm_lons, sm_lats, sm_data[:, :, z]])
+    
+    print('Soil moisture set up...')
+    
+    # Downward shortwave radiation (S_d)
+    # Generate 3D data matrix, with a different time at each z-index of the grid
+    S_d = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    # Note: z is used as variable name to maintain intuition for the depth of the grid
+    for z, date in enumerate(date_range): 
+        # Find downward shortwave radiation data
+        S_d_lats, S_d_lons, S_d_data = sd.main(domain, domain_center, date)
+        # If data is not found for the current date, set data to nan
+        # Else, go ahead and re-align grids
+        if S_d_data is None:
+            S_d[:, :, z] = np.full(S_d.shape, np.nan)
+        else:
+            S_d[:, :, z] = goes_grid_setup.grid_alignment([lons, lats], [S_d_lons, S_d_lats, S_d_data])
+    
+    print('Downward shortwave radiation set up...')
+    
+    return LAI, sm, S_d
 
 ##############################################################################################
 # Method name:      physics_setup
@@ -190,12 +242,21 @@ def physics_setup(lats, lons, date_range, local_time, domain_center, goes_idx, b
     # Sensible heat flux (Q_H)
     # Generate 3D data matrix, with a different time at each z-index of the grid
     Q_H = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    r_av = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
     for z, date in enumerate(date_range): # Note: z is used to maintain intuition for the depth of the grid
         for i in range(0, lats.shape[0]):
             for j in range(0, lats.shape[1]):
-                Q_H[i, j, z] = qh.hfx(5*h_0[i, j], h_0[i, j], p_air[z], u_r[z], T_s[i, j, z], T_a[i, j, z], T_dew[z])
+                Q_H[i, j, z], r_av[i, j, z] = qh.hfx(5*h_0[i, j], h_0[i, j], p_air[z], u_r[z], T_s[i, j, z], T_a[i, j, z], T_dew[z])
                 
-    return T_s, T_a, Q_H
+    # Latent heat flux (Q_E)
+    # Generate 3D data matrix, with a different time at each z-index of the grid
+    Q_E = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    for z, date in enumerate(date_range): # Note: z is used to maintain intuition for the depth of the grid
+        for i in range(0, lats.shape[0]):
+            for j in range(0, lats.shape[1]):
+                Q_E[i, j, z] = qe.lhf(T_s[i, j, z], T_a[i, j, z], T_dew[z], p_air[z], r_av[i, j, z], sm[i, j, z], sd[i, j, z], lai[i, j, z])
+                
+    return T_s, T_a, Q_H, r_av, Q_E
 
 ##############################################################################################
 # Method name:      vdtn_setup
@@ -206,19 +267,27 @@ def physics_setup(lats, lons, date_range, local_time, domain_center, goes_idx, b
 
 def vdtn_setup(lats, date_range, domain_center, plot_var):
     # Generate 3D data matrix, with a different time at each z-index of the grid
-    station_data = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    station_qh = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
+    station_qe = np.empty([np.shape(lats)[0], np.shape(lats)[1], len(date_range)])
     
     # Choose observation station for validation based on domain center distance to station
     station_path = functions.station_finder(domain_center)
     
-    # Get data for selected station
-    obs = mesonet.csv_reader(date_range, station_path)
+    # Choose data retrieval algorithm based on relevant network
+    if 'ameriflux' in station_path:
+        # Get data for selected station
+        obs = ameriflux.csv_reader(domain_center, date_range[0], date_range[-1])
+    elif 'mesonet' in station_path:        
+        # Get data for selected station
+        obs = mesonet.csv_reader(date_range, station_path)
+        
     for z, date in enumerate(date_range): # Note: z is used to maintain intuition for the depth of the grid
         for i in range(0, lats.shape[0]):
             for j in range(0, lats.shape[1]):
-                station_data[i, j, z] = obs[plot_var][z]
-                
-    return station_data
+                station_qh[i, j, z] = obs[plot_var][z]
+                station_qe[i, j, z] = obs['Q_E'][z]
+            
+    return station_qh, station_qe
 
 def timeseries_plot(date_range, lats, lons, crd, var_list, plot_var):
     # Retrieve grid point for selected coordinate
@@ -246,8 +315,7 @@ def timeseries_plot(date_range, lats, lons, crd, var_list, plot_var):
     coord_timeseries = timeseries.time_plot(date_range, data_list, timeseries_metadata)
     return coord_timeseries
 
-def gridmap_plot():
-    
+def gridmap_plot():    
     return None
 
 if __name__ == '__main__':
@@ -255,18 +323,21 @@ if __name__ == '__main__':
     
     # Grab inputs for spatial and temporal domains and variable of interest
     # To be removed when published
-    domain = [40.60, 40.80, -74.05, -73.85]
-    sample_coordinate = [40.6305, -73.9521]
-    date_range = [datetime.datetime(year=2019, month=7, day=26, hour=5),
-                  datetime.datetime(year=2019, month=7, day=29, hour=5)-datetime.timedelta(hours=1)]
+    domain = [36.3558, 36.8558, -97.7388, -97.2388]
+    sample_coordinate = [36.6058, -97.4888]
+    date_range = [datetime.datetime(year=2017, month=10, day=9, hour=6),
+                  datetime.datetime(year=2017, month=10, day=10, hour=6)-datetime.timedelta(hours=1)]
     date_range = pandas.date_range(start=date_range[0], end=date_range[1], freq='H') 
     plot_var = 'Q_H'
+    
+    # Boolean to control display of station data
+    validation = True
     
     # Set up model inputs (either from the user or from pre-defined inputs)
     domain, domain_center, date_range, utc_offset, local_time, plot_var, time_plot, grid_plot = input_setup(domain=domain, date_range=date_range, plot_var=plot_var)
     
     # Set up grid base for the model
-    lats, lons, goes_idx, lcd, water_pixel, h_0, elevation_grid = grid_setup(domain)
+    lats, lons, goes_idx, lcd, water_pixel, h_0, elevation_grid = grid_setup(domain, date_range)
     
     # Pull ASOS data for defined spatial domain and central point for domain
     u_r, T_dew, p_air = asos_data_reader.data_read(local_time, domain_center, utc_offset)
@@ -277,11 +348,16 @@ if __name__ == '__main__':
     # Grab WRF data if the user decides to incorporate it
     wrf_data = wrf_setup(lats, local_time, wrf=False)
     
+    # Pull leaf area index (LAI) and soil moisture (SMAP) data for defined spatial domain
+    lai, sm, sd = aux_props(domain, domain_center, date_range)
+    # sys.exit()
+    
     # Calculate physics-based variables
-    T_s, T_a, Q_H = physics_setup(lats, lons, date_range, local_time, domain_center, goes_idx, bucket, h_0, p_air, u_r, T_dew)
+    T_s, T_a, Q_H, r_av, Q_E = physics_setup(lats, lons, date_range, local_time, domain_center, goes_idx, bucket, h_0, p_air, u_r, T_dew)
     
     # Grab nearest observation data for a given variable
-    station_data = vdtn_setup(lats, date_range, domain_center, plot_var)
+    if validation:
+        station_qh, station_qe = vdtn_setup(lats, date_range+utc_offset, domain_center, plot_var)
     
     # Add Mesonet data into respective directories. Take a look at the .7z file in the Google Drive.
     
@@ -290,17 +366,17 @@ if __name__ == '__main__':
     # 1. Create single formatting file for all text
     
     # Timeseries plotting, point-based
-    if (date_range[-1] - date_range[0]).total_seconds() >= 3600:
-        var_list = [['Q_H', 'station_data'],
-                    ['T_s', 'T_a']]
-        coord_timeseries = timeseries_plot(date_range, lats, lons, sample_coordinate, var_list, plot_var)
+    if validation:
+        if (date_range[-1] - date_range[0]).total_seconds() >= 3600:
+            var_list = [['Q_H', 'station_qh'],
+                        ['Q_E', 'station_qe'],
+                        ['T_s', 'T_a']]
+            coord_timeseries = timeseries_plot(date_range, lats, lons, sample_coordinate, var_list, plot_var)
 
-    '''
     # Spatial gridded data plotting, domain-based    
     grid_var = globals()[plot_var]
     grid_metadata = varnames.var_metadata(plot_var, plot_var)    
-    datamap = meshgrid.main(domain, domain_center, date_range, lats, lons, grid_var, grid_metadata, zoom=0.0, animated=True, savefig=True)
-    '''
+    # datamap = meshgrid.main(domain, domain_center, date_range, lats, lons, grid_var, grid_metadata, zoom=0.0, animated=False, savefig=False)
     
     runtime = time.time() - t
     print('Program runtime is: {0:.3f} sec'.format(runtime))
