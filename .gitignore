@@ -11,3 +11,10 @@ nlcd_to_goes_upscaled.csv
 *.grib2
 *Mesonet.csv
 *elevation.csv
+*.json
+*.nc
+*.dat
+*.txt
+*.xls*
+*.eps
+*.csv
