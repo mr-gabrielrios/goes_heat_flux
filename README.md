@@ -3,6 +3,8 @@ The objective of this package is to calculate sensible and latent heat fluxes (Q
 
 The geographical domain of this package is the continental United States, unfortunately. Damn those Yankees, right? The temporal domain of this package is dependent on the availability of [GOES-16 ABI Level 2+ Land Surface Temperature](https://console.cloud.google.com/storage/browser/gcp-public-data-goes-16/ABI-L2-LSTC). Dates prior to 2018 are unlikely to have data. Also note that the land cover data used from the [2016 National Land Cover Database](https://www.mrlc.gov/data/nlcd-2016-land-cover-conus) is most accurate to model runs in the 2010s, especially in urban areas (due to urbanization and corresponding land cover changes).
 
+**Update:** the paper cataloguing the model and its validation has been peer-reviewed and published in [Remote Sensing of Environment](https://doi.org/10.1016/j.rse.2021.112880).
+
 ## How do I use this?
 This is more of a note for my future self than anyone else, because I can't imagine why someone else would use this.
 
